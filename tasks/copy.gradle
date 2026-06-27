@@ -1,0 +1,71 @@
+import org.gradle.api.GradleException
+import org.gradle.api.tasks.Copy
+
+// Garante que a cópia seja executada antes de processar os recursos de teste
+tasks.named('processTestResources') {
+    dependsOn copyMetaInfServicesFromTestObjects
+}
+
+//tasks.register("copyMetaInfServicesFromTestObjects", Copy) {
+//    def fornecedorJar
+//
+//    doFirst {
+//        fornecedorJar = configurations.testRuntimeClasspath.find {
+//            it.name.contains("test-objects") && it.exists()
+//        }
+//
+//        if (!fornecedorJar) {
+//            logger.lifecycle("⚠️ JAR de 'test-objects' não encontrado. Task será ignorada.")
+//            // Força a task a ser NO-OP
+//            enabled = false
+//            return
+//        }
+//
+//        logger.lifecycle("✅ JAR de test-objects encontrado: ${fornecedorJar}")
+//        from(zipTree(fornecedorJar)) {
+//            include 'META-INF/services/**'
+//        }
+//
+//        into 'src/test/resources'
+//    }
+//}
+task copyMetaInfServicesFromTestObjects(type: Copy) {
+    // Resolve o JAR da dependência 'test-objects' no classpath de runtime de teste
+    def fornecedorJar = configurations.testRuntimeClasspath.find { it.name.contains("test-objects") }
+
+    // Verifica se o JAR foi encontrado, se não lançar um erro
+    if (!fornecedorJar) {
+        throw new GradleException("Dependência 'test-objects' não encontrada na configuração testRuntimeClasspath")
+    }
+
+    // Copia  o conteúdo da pasta META-INF do JAR do fornecedor
+    from(zipTree(fornecedorJar)) {
+        include 'META-INF/services/**'  // Inclui todos os arquivos e pastas dentro de META-INF
+    }
+
+    // Define o destino onde os arquivos serão copiados no projeto consumidor, sem criar META-INF duplicado
+    into 'src/test/resources'  // Copia diretamente para src/test/resources
+}
+
+
+tasks.named('processResources') {
+    dependsOn 'copySpringFactoriesFromIntegrationObjects'
+}
+
+task copySpringFactoriesFromIntegrationObjects(type: Copy) {
+    // Resolve o JAR da dependência 'test-objects' no classpath de runtime de teste
+    def fornecedorJar = configurations.runtimeClasspath.find { it.name.contains("integration-objects") }
+
+    // Verifica se o JAR foi encontrado, se não lançar um erro
+    if (!fornecedorJar) {
+        throw new GradleException("Dependência 'integration-objects' não encontrada na configuração do Classpath")
+    }
+
+    // Copia o conteúdo da pasta META-INF do JAR do fornecedor
+    from(zipTree(fornecedorJar)) {
+        include 'META-INF/*.factories'  // Inclui todos os arquivos e pastas dentro de META-INF
+    }
+
+    // Define o destino onde os arquivos serão copiados no projeto consumidor, sem criar META-INF duplicado
+    into 'src/main/resources'  // Copia diretamente para src/main/resources
+}

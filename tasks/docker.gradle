@@ -1,0 +1,12 @@
+tasks.register('buildDockerImage') {
+    group = 'build'
+    dependsOn build
+    doLast {
+        project.exec {
+            commandLine 'docker', 'compose', 'up', '--build'
+            standardOutput = System.out
+            errorOutput = System.err
+            ignoreExitValue = true
+        }
+    }
+}

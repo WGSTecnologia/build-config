@@ -1,0 +1,50 @@
+tasks.register('downloadBuildFiles') {
+    doLast {
+        def filesToDownload = [
+                'https://raw.githubusercontent.com/WGSTecnologia/build-config/master/gradle.properties',
+                'https://raw.githubusercontent.com/WGSTecnologia/build-config/master/tasks/docker.gradle',
+                'https://raw.githubusercontent.com/WGSTecnologia/build-config/master/tasks/devops.gradle',
+                'https://raw.githubusercontent.com/WGSTecnologia/build-config/master/tasks/copy.gradle',
+        ]
+
+        // Override opcional para builds offline: SKIP_DOWNLOAD_BUILD_FILES=true pula o sync.
+        if (System.getenv('SKIP_DOWNLOAD_BUILD_FILES') == 'true') {
+            println "downloadBuildFiles: pulado (SKIP_DOWNLOAD_BUILD_FILES=true)"
+            return
+        }
+
+        filesToDownload.each { fileUrl ->
+            def fileName = fileUrl.tokenize('/').last() // Obtém o nome do arquivo da URL
+            def outputDir = fileName.endsWith(".gradle") ? file("${projectDir}/gradle") : file("${projectDir}")
+            def outputFile = new File(outputDir, fileName)
+
+            try {
+                // Auto-sync a partir do repo PUBLICO build-config — sem token, em qualquer
+                // maquina, sem configurar nada. Sobrescreve a copia local com a versao central.
+                println "Sincronizando: ${fileUrl} -> ${outputFile}"
+                def url = new URL(fileUrl)
+                def connection = (HttpURLConnection) url.openConnection()
+                connection.setConnectTimeout(5000)  // 5s
+                connection.setReadTimeout(10000)    // 10s
+                connection.connect()
+
+                if (connection.responseCode == 200) {
+                    outputFile.withOutputStream { outputStream ->
+                        connection.inputStream.withStream { inputStream ->
+                            inputStream.transferTo(outputStream)
+                        }
+                    }
+                    println "Arquivo ${fileName} sincronizado a partir do build-config!"
+                } else {
+                    println "AVISO: Falha ao baixar ${fileName}: ${connection.responseMessage} — mantendo versão local"
+                }
+            } catch (Exception e) {
+                // Fail-open: falha de rede/timeout NAO quebra o build; usa a copia local versionada.
+                println "AVISO: Exceção ao baixar ${fileName}: ${e.message} — mantendo versão local"
+            }
+        }
+    }
+
+    // Sempre sincroniza com o repo central (ignora cache do Gradle)
+    outputs.upToDateWhen { false }
+}
