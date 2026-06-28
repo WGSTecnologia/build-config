@@ -30,17 +30,19 @@ tasks.named('processTestResources') {
 //    }
 //}
 task copyMetaInfServicesFromTestObjects(type: Copy) {
-    // Resolve o JAR da dependência 'test-objects' no classpath de runtime de teste
-    def fornecedorJar = configurations.testRuntimeClasspath.find { it.name.contains("test-objects") }
-
-    // Verifica se o JAR foi encontrado, se não lançar um erro
-    if (!fornecedorJar) {
-        throw new GradleException("Dependência 'test-objects' não encontrada na configuração testRuntimeClasspath")
-    }
-
     // Copia  o conteúdo da pasta META-INF do JAR do fornecedor
-    from(zipTree(fornecedorJar)) {
-        include 'META-INF/services/**'  // Inclui todos os arquivos e pastas dentro de META-INF
+    from {
+        // Resolve o JAR da dependência 'test-objects' no classpath de runtime de teste
+        def fornecedorJar = configurations.testRuntimeClasspath.find { it.name.contains("test-objects") }
+
+        // Verifica se o JAR foi encontrado, se não lançar um erro
+        if (!fornecedorJar) {
+            throw new GradleException("Dependência 'test-objects' não encontrada na configuração testRuntimeClasspath")
+        }
+
+        zipTree(fornecedorJar).matching {
+            include 'META-INF/services/**'  // Inclui todos os arquivos e pastas dentro de META-INF
+        }
     }
 
     // Define o destino onde os arquivos serão copiados no projeto consumidor, sem criar META-INF duplicado
@@ -53,17 +55,19 @@ tasks.named('processResources') {
 }
 
 task copySpringFactoriesFromIntegrationObjects(type: Copy) {
-    // Resolve o JAR da dependência 'test-objects' no classpath de runtime de teste
-    def fornecedorJar = configurations.runtimeClasspath.find { it.name.contains("integration-objects") }
-
-    // Verifica se o JAR foi encontrado, se não lançar um erro
-    if (!fornecedorJar) {
-        throw new GradleException("Dependência 'integration-objects' não encontrada na configuração do Classpath")
-    }
-
     // Copia o conteúdo da pasta META-INF do JAR do fornecedor
-    from(zipTree(fornecedorJar)) {
-        include 'META-INF/*.factories'  // Inclui todos os arquivos e pastas dentro de META-INF
+    from {
+        // Resolve o JAR da dependência 'test-objects' no classpath de runtime de teste
+        def fornecedorJar = configurations.runtimeClasspath.find { it.name.contains("integration-objects") }
+
+        // Verifica se o JAR foi encontrado, se não lançar um erro
+        if (!fornecedorJar) {
+            throw new GradleException("Dependência 'integration-objects' não encontrada na configuração do Classpath")
+        }
+
+        zipTree(fornecedorJar).matching {
+            include 'META-INF/*.factories'  // Inclui todos os arquivos e pastas dentro de META-INF
+        }
     }
 
     // Define o destino onde os arquivos serão copiados no projeto consumidor, sem criar META-INF duplicado
